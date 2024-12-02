@@ -1,9 +1,11 @@
 # Session 1
+### [👉 Watch the session recordings](https://www.realworldml.net/products/building-a-better-real-time-ml-system-together-cohort-3/categories/2156625028)
 
-## Goals for this session
+
+## Goals
 
 - Set up the development tools
-- Build a microservice that ingests live trades from Kraken and push them to a Kafka topic
+- Build a microservice that ingests live trades from Kraken and pushes them to a Kafka topic
 
 ## Tools
 
