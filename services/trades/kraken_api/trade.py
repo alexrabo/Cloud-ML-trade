@@ -5,14 +5,6 @@ from typing import Optional
 class Trade(BaseModel):
     """
     A trade from the Kraken API.
-
-    "symbol": "MATIC/USD",
-    "side": "sell",
-    "price": 0.5117,
-    "qty": 40.0,
-    "ord_type": "market",
-    "trade_id": 4665906,
-    "timestamp": "2023-09-25T07:49:37.708706Z"
     """
     pair: str
     price: float
