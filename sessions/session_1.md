@@ -2,12 +2,12 @@
 ### [👉 Watch the session recordings](https://www.realworldml.net/products/building-a-better-real-time-ml-system-together-cohort-3/categories/2156625028)
 
 
-## Goals
+## Goals 🎯
 
 - Set up the development tools
 - Build a microservice that ingests live trades from Kraken and pushes them to a Kafka topic. We want a modular design, so you can easily plug different real time data sources.
 
-## Key learnings
+## Key learnings 💡
 
 - The Universal Feature-Training-Inference pipeline design
 - A bit of `uv`ing
@@ -21,7 +21,7 @@
 - Building a simple Websocket client in python to fetch trades in real time.
 
 
-## Tools
+## Tools 🛠️
 
 ### 1. Code editor
 My recommendations are
