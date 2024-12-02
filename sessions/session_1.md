@@ -5,7 +5,21 @@
 ## Goals
 
 - Set up the development tools
-- Build a microservice that ingests live trades from Kraken and pushes them to a Kafka topic
+- Build a microservice that ingests live trades from Kraken and pushes them to a Kafka topic. We want a modular design, so you can easily plug different real time data sources.
+
+## Key learnings
+
+- The Universal Feature-Training-Inference pipeline design
+- A bit of `uv`ing
+    - `uv init`
+    - `uv add`
+    - `uv remove`
+- How to spin up a minimal Redpanda cluster locally, with just one broker, using docker compose.
+- No more printing. It is time for logging.
+- Application settings with Pydantic settings.
+- Quix Streams to produce messages to Kafka.
+- Building a simple Websocket client in python to fetch trades in real time.
+
 
 ## Tools
 
