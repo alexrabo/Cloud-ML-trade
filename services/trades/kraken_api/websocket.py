@@ -47,12 +47,11 @@ class KrakenWebsocketAPI:
             return []
 
         trades = [
-            Trade(
+            Trade.from_kraken_api_response(
                 pair=trade['symbol'],
                 price=trade['price'],
                 volume=trade['qty'],
                 timestamp=trade['timestamp'],
-                timestamp_ms=datestr2milliseconds(trade['timestamp']),
             ) for trade in trades_data
         ]
         # breakpoint()
