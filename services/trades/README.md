@@ -20,7 +20,7 @@ make start-redpanda
 You can check the message bus is up and running by going to the Redpanda console, on `localhost:8080`. 
 
 ### 2. Set configuration parameters in the `.env` file
-Once Redpanda is up and running, fill in the configuration parameters in the `.env` file.
+Once Redpanda is up and running, fill in the configuration parameters in the `settings.env` file.
 Choose whatever name you want for the kafka topic, and choose the crypo pairs you are interested in.
 
 ```.env
