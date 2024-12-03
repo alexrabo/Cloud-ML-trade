@@ -1,6 +1,8 @@
 # Session 1
 ### [👉 Watch the session recordings](https://www.realworldml.net/products/building-a-better-real-time-ml-system-together-cohort-3/categories/2156625028)
 
+### [👉 Slides](https://www.realworldml.net/products/building-a-better-real-time-ml-system-together-cohort-3/categories/2156625028/posts/2183265376)
+
 
 ## Goals 🎯
 
