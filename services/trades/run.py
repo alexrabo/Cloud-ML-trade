@@ -1,14 +1,15 @@
-from loguru import logger
-from quixstreams import Application
 from typing import Union
 
 from kraken_api.mock import KrakenMockAPI
 from kraken_api.websocket import KrakenWebsocketAPI
+from loguru import logger
+from quixstreams import Application
+
 
 def main(
     kafka_broker_address: str,
     kafka_topic: str,
-    kraken_api: Union[KrakenWebsocketAPI, KrakenMockAPI]
+    kraken_api: Union[KrakenWebsocketAPI, KrakenMockAPI],
 ):
     """
     It does 2 things:
@@ -23,7 +24,7 @@ def main(
     Returns:
         None
     """
-    logger.info("Start the trades service")
+    logger.info('Start the trades service')
 
     # Initialize the Quix Streams application.
     # This class handles all the low-level details to connect to Kafka.
@@ -35,7 +36,6 @@ def main(
     topic = app.topic(name=kafka_topic, value_serializer='json')
 
     with app.get_producer() as producer:
-
         while True:
             trades = kraken_api.get_trades()
 
@@ -47,14 +47,12 @@ def main(
                 )
 
                 # push the serialized message to the topic
-                producer.produce(
-                    topic=topic.name, value=message.value, key=message.key
-                )
-                
+                producer.produce(topic=topic.name, value=message.value, key=message.key)
+
                 logger.info(f'Pushed trade to Kafka: {trade}')
 
-if __name__ == "__main__":
-    
+
+if __name__ == '__main__':
     from config import config
 
     # Initialize the Kraken API
@@ -63,5 +61,5 @@ if __name__ == "__main__":
     main(
         kafka_broker_address=config.kafka_broker_address,
         kafka_topic=config.kafka_topic,
-        kraken_api=kraken_api
+        kraken_api=kraken_api,
     )
