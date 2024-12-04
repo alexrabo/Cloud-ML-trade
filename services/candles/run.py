@@ -15,7 +15,7 @@ def custom_ts_extractor(
     Specifying a custom timestamp extractor to use the timestamp from the message payload
     instead of Kafka timestamp.
     """
-    # breakpoint()
+    # logger.debug(f'Custom timestamp extractor: {value}')
     return value['timestamp_ms']
 
 
@@ -23,6 +23,7 @@ def init_candle(trade: dict) -> dict:
     """
     Initialize a candle with the first trade
     """
+    # breakpoint()
     return {
         'open': trade['price'],
         'high': trade['price'],
@@ -36,6 +37,7 @@ def update_candle(candle: dict, trade: dict) -> dict:
     """
     Update the candle with the latest trade
     """
+    # breakpoint()
     candle['close'] = trade['price']
     candle['high'] = max(candle['high'], trade['price'])
     candle['low'] = min(candle['low'], trade['price'])
@@ -74,7 +76,6 @@ def main(
         broker_address=kafka_broker_address,
         consumer_group=kafka_consumer_group,
     )
-    # app.clear_state()
 
     # Define the input and output topics
     input_topic = app.topic(
@@ -113,8 +114,13 @@ def main(
         # Create a "reduce" aggregation with "reducer" and "initializer" functions
         .reduce(reducer=update_candle, initializer=init_candle)
         # Emit results only for closed windows
-        .final()
+        .current()
     )
+
+    # sdf = sdf.print()
+    sdf = sdf.update(lambda value: logger.info(f'Candle: {value}'))
+    sdf = sdf.update(lambda _: breakpoint())
+
     # push the candle to the output topic
     sdf = sdf.to_topic(topic=output_topic)
 
