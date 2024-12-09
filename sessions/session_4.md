@@ -1,7 +1,7 @@
 # Session 3
-### [👉 Watch the session recordings]()
+### [👉 Watch the session recordings](https://www.realworldml.net/products/building-a-better-real-time-ml-system-together-cohort-3/categories/2156666851)
 
-### [👉 Slides]()
+### [👉 Slides](https://www.realworldml.net/products/building-a-better-real-time-ml-system-together-cohort-3/categories/2156666851/posts/2183416544)
 
 
 ## Goals 🎯
@@ -12,7 +12,7 @@
     - [x] Dockerize it
 
 - [x] Docker compose file for our technical-indicators pipeline
-- [ ] Building the backfill pipeline.
+- [ ] Start building the backfill pipeline.
 
 ## Questions
 

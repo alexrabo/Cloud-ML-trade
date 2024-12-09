@@ -52,7 +52,7 @@ or
 ### Vincent Reynard Satyadharma
 *How do we horizontally scale the candles services? Will the data aggregation still work if multiple instances are aggregating the same candle period?*
 
-[Add slides about topic partitions and consumer groups]
+[👉 Blog post](https://www.realworldml.net/blog/scalable-feature-engineering-with-docker-and-kafka)
 
 ### Carlo Casorzo
 *but how will the tumbling windows work this way? will quix use those state topics you showed yesterday in order to allow this distributed tumbling window calc?*
