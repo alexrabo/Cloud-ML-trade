@@ -139,6 +139,8 @@ def main(
         ]
     ]
 
+    sdf['candle_seconds'] = candle_seconds
+
     # sdf = sdf.print()
     sdf = sdf.update(lambda value: logger.info(f'Candle: {value}'))
     # sdf = sdf.update(lambda value: breakpoint())
