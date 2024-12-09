@@ -8,8 +8,8 @@
 
 - [x] Show horizontal scaling in action
 - [x] Add `candle_seconds` to our messages
-- [ ] Complete to-feature-store service
-    - [ ] Dockerize it
+- [x] Complete to-feature-store service
+    - [x] Dockerize it
 
 - [ ] Docker compose file for our technical-indicators pipeline
 - [ ] Building the backfill pipeline.
@@ -29,3 +29,6 @@ Hello. I may have missed it, but it is not in the document (see below). Can we h
 
 ### Stefan Pajovic
 First partition ih handling 2 keys, so 4th partition is obsolete. So this means we can implement new partition obefore we introduce new keys, then new key is going to new partition? Do I get this right? :)
+
+### Jayant Sharma
+will the combination of pair and candle_seconds ensure a unique primary key everytime?
