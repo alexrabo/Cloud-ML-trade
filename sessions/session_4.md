@@ -11,7 +11,7 @@
 - [x] Complete to-feature-store service
     - [x] Dockerize it
 
-- [ ] Docker compose file for our technical-indicators pipeline
+- [x] Docker compose file for our technical-indicators pipeline
 - [ ] Building the backfill pipeline.
 
 ## Questions
@@ -32,3 +32,6 @@ First partition ih handling 2 keys, so 4th partition is obsolete. So this means 
 
 ### Jayant Sharma
 will the combination of pair and candle_seconds ensure a unique primary key everytime?
+
+### Ichun yeh
+do we need to add `depends_on` in `technical-indicators-pipeline.yml`? or not because these are not strong dependencies?
