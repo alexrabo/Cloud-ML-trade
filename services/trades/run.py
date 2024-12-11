@@ -15,7 +15,6 @@ class TradesService(Protocol):
         """Returns configured trades API instance"""
         pass
 
-
 @dataclass
 class KrakenTradesService:
     data_source: str
