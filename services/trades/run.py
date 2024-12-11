@@ -1,60 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 from kraken_api.base import TradesAPI
-from kraken_api.mock import KrakenMockAPI
-from kraken_api.rest import KrakenRestAPI
-from kraken_api.websocket import KrakenWebsocketAPI
+from factory import TradesAPIFactory
 from loguru import logger
-from quixstreams import Application
+import asyncio
 from typing import Protocol
 from dataclasses import dataclass
-
-
-class TradesService(Protocol):
-    def get_trades_api(self) -> TradesAPI:
-        """Returns configured trades API instance"""
-        pass
-
-@dataclass
-class KrakenTradesService:
-    data_source: str
-    pairs: list[str]
-    last_n_days: int = None
-    _trades_api: TradesAPI = None
-
-    def get_trades_api(self) -> TradesAPI:
-        if not self._trades_api:
-            self._trades_api = self._create_trades_api()
-        return self._trades_api
-
-    def _create_trades_api(self) -> TradesAPI:
-        if self.data_source == 'live':
-            return KrakenWebsocketAPI(pairs=self.pairs)
-        elif self.data_source == 'historical':
-            return KrakenRestAPI(pairs=self.pairs, last_n_days=self.last_n_days)
-        elif self.data_source == 'test':
-            return KrakenMockAPI(pairs=self.pairs)
-        else:
-            raise ValueError(f'Invalid data source: {self.data_source}')
-
-
-class QuixStreamingService:
-    def __init__(self, broker_address: str, topic_name: str):
-        self.broker_address = broker_address
-        self.topic_name = topic_name
-        self.app = None
-        self.topic = None
-        self.producer = None
-
-    async def start(self):
-        self.app = Application(broker_address=self.broker_address)
-        self.topic = self.app.topic(name=self.topic_name, value_serializer='json')
-        self.producer = self.app.get_producer()
-        await self.producer.__aenter__()
-
-    async def stop(self):
-        if self.producer:
-            await self.producer.__aexit__(None, None, None)
+from streaming import QuixStreamingService
+import yaml
+from importlib import import_module
 
 
 class TradesRouter(APIRouter):
@@ -68,27 +22,15 @@ class TradesRouter(APIRouter):
 
         while not trades_api.is_done():
             trades = trades_api.get_trades()
-
             for trade in trades:
-                message = streaming_service.topic.serialize(
-                    key=trade.pair.replace('/', '-'),
-                    value=trade.to_dict(),
-                )
-
-                await streaming_service.producer.produce(
-                    topic=streaming_service.topic.name,
-                    value=message.value,
-                    key=message.key
-                )
-                logger.info(f'Pushed trade to Kafka: {trade}')
+                await streaming_service.publish_trade(trade)
 
     @asynccontextmanager
     async def lifespan(self, app: FastAPI):
-        # Load config
         from config import config
 
-        # Initialize services
-        trades_service = KrakenTradesService(
+        # Initialize services using factory
+        trades_api = TradesAPIFactory.create(
             data_source=config.data_source,
             pairs=config.pairs,
             last_n_days=config.last_n_days
@@ -101,7 +43,6 @@ class TradesRouter(APIRouter):
 
         # Start services
         await streaming_service.start()
-        trades_api = trades_service.get_trades_api()
 
         # Store services in router state
         self.state = type('RouterState', (), {
@@ -110,7 +51,6 @@ class TradesRouter(APIRouter):
         })
 
         # Start processing trades
-        import asyncio
         self.trades_task = asyncio.create_task(self.process_trades())
         
         logger.info('Trades service started')
@@ -130,14 +70,9 @@ class TradesRouter(APIRouter):
 
 def create_app() -> FastAPI:
     app = FastAPI()
-    
-    # Create and configure trades router
     trades_router = TradesRouter()
     trades_router.add_api_route("/status", lambda: {"status": "running"}, methods=["GET"])
-    
-    # Mount the trades router with its own lifespan
     app.mount("/trades", trades_router)
-    
     return app
 
 
