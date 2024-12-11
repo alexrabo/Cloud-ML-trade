@@ -1,80 +1,149 @@
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, APIRouter
 from kraken_api.base import TradesAPI
 from kraken_api.mock import KrakenMockAPI
 from kraken_api.rest import KrakenRestAPI
 from kraken_api.websocket import KrakenWebsocketAPI
 from loguru import logger
 from quixstreams import Application
+from typing import Protocol
+from dataclasses import dataclass
 
 
-def main(
-    kafka_broker_address: str,
-    kafka_topic: str,
-    trades_api: TradesAPI,
-):
-    """
-    It does 2 things:
-    1. Reads trades from the Kraken API and
-    2. Pushes them to a Kafka topic.
+class TradesService(Protocol):
+    def get_trades_api(self) -> TradesAPI:
+        """Returns configured trades API instance"""
+        pass
 
-    Args:
-        kafka_broker_address: str
-        kafka_topic: str
-        trades_api: TradesAPI with 2 methods: get_trades and is_done
 
-    Returns:
-        None
-    """
-    logger.info('Start the trades service')
+@dataclass
+class KrakenTradesService:
+    data_source: str
+    pairs: list[str]
+    last_n_days: int = None
+    _trades_api: TradesAPI = None
 
-    # Initialize the Quix Streams application.
-    # This class handles all the low-level details to connect to Kafka.
-    app = Application(
-        broker_address=kafka_broker_address,
-    )
+    def get_trades_api(self) -> TradesAPI:
+        if not self._trades_api:
+            self._trades_api = self._create_trades_api()
+        return self._trades_api
 
-    # Define the topic where we will push the trades to
-    topic = app.topic(name=kafka_topic, value_serializer='json')
+    def _create_trades_api(self) -> TradesAPI:
+        if self.data_source == 'live':
+            return KrakenWebsocketAPI(pairs=self.pairs)
+        elif self.data_source == 'historical':
+            return KrakenRestAPI(pairs=self.pairs, last_n_days=self.last_n_days)
+        elif self.data_source == 'test':
+            return KrakenMockAPI(pairs=self.pairs)
+        else:
+            raise ValueError(f'Invalid data source: {self.data_source}')
 
-    with app.get_producer() as producer:
+
+class QuixStreamingService:
+    def __init__(self, broker_address: str, topic_name: str):
+        self.broker_address = broker_address
+        self.topic_name = topic_name
+        self.app = None
+        self.topic = None
+        self.producer = None
+
+    async def start(self):
+        self.app = Application(broker_address=self.broker_address)
+        self.topic = self.app.topic(name=self.topic_name, value_serializer='json')
+        self.producer = self.app.get_producer()
+        await self.producer.__aenter__()
+
+    async def stop(self):
+        if self.producer:
+            await self.producer.__aexit__(None, None, None)
+
+
+class TradesRouter(APIRouter):
+    def __init__(self):
+        super().__init__()
+        self.trades_task = None
+
+    async def process_trades(self):
+        trades_api = self.state.trades_api
+        streaming_service = self.state.streaming_service
+
         while not trades_api.is_done():
             trades = trades_api.get_trades()
 
             for trade in trades:
-                # serialize the trade as bytes
-                message = topic.serialize(
+                message = streaming_service.topic.serialize(
                     key=trade.pair.replace('/', '-'),
                     value=trade.to_dict(),
                 )
 
-                # push the serialized message to the topic
-                producer.produce(topic=topic.name, value=message.value, key=message.key)
-
+                await streaming_service.producer.produce(
+                    topic=streaming_service.topic.name,
+                    value=message.value,
+                    key=message.key
+                )
                 logger.info(f'Pushed trade to Kafka: {trade}')
 
+    @asynccontextmanager
+    async def lifespan(self, app: FastAPI):
+        # Load config
+        from config import config
+
+        # Initialize services
+        trades_service = KrakenTradesService(
+            data_source=config.data_source,
+            pairs=config.pairs,
+            last_n_days=config.last_n_days
+        )
+
+        streaming_service = QuixStreamingService(
+            broker_address=config.kafka_broker_address,
+            topic_name=config.kafka_topic
+        )
+
+        # Start services
+        await streaming_service.start()
+        trades_api = trades_service.get_trades_api()
+
+        # Store services in router state
+        self.state = type('RouterState', (), {
+            'trades_api': trades_api,
+            'streaming_service': streaming_service
+        })
+
+        # Start processing trades
+        import asyncio
+        self.trades_task = asyncio.create_task(self.process_trades())
+        
+        logger.info('Trades service started')
+        yield
+
+        # Cleanup
+        if self.trades_task:
+            self.trades_task.cancel()
+            try:
+                await self.trades_task
+            except asyncio.CancelledError:
+                pass
+
+        await streaming_service.stop()
+        logger.info('Trades service stopped')
+
+
+def create_app() -> FastAPI:
+    app = FastAPI()
+    
+    # Create and configure trades router
+    trades_router = TradesRouter()
+    trades_router.add_api_route("/status", lambda: {"status": "running"}, methods=["GET"])
+    
+    # Mount the trades router with its own lifespan
+    app.mount("/trades", trades_router)
+    
+    return app
+
+
+app = create_app()
 
 if __name__ == '__main__':
-    from config import config
-
-    # Initialize the Kraken API depending on the data source
-    if config.data_source == 'live':
-        kraken_api = KrakenWebsocketAPI(pairs=config.pairs)
-    elif config.data_source == 'historical':
-        kraken_api = KrakenRestAPI(pairs=config.pairs, last_n_days=config.last_n_days)
-
-        # # TODO: remove this once we are done debugging the KrakenRestAPISinglePair
-        # from kraken_api.rest import KrakenRestAPISinglePair
-        # kraken_api = KrakenRestAPISinglePair(
-        #     pair=config.pairs[0],
-        #     last_n_days=config.last_n_days,
-        # )
-
-    elif config.data_source == 'test':
-        kraken_api = KrakenMockAPI(pairs=config.pairs)
-    else:
-        raise ValueError(f'Invalid data source: {config.data_source}')
-
-    main(
-        kafka_broker_address=config.kafka_broker_address,
-        kafka_topic=config.kafka_topic,
-        trades_api=kraken_api,
-    )
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
