@@ -1,7 +1,9 @@
 import yaml
 from importlib import import_module
 from kraken_api.base import TradesAPI
-
+"""
+Factory for creating TradesAPI instances.
+"""
 class TradesAPIFactory:
     @staticmethod
     def create(data_source: str, pairs: list[str], last_n_days: int = None) -> TradesAPI:

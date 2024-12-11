@@ -1,7 +1,9 @@
 from quixstreams import Application
 from loguru import logger
 
-
+"""
+Streaming service for publishing trades to Kafka.
+"""
 class QuixStreamingService:
     def __init__(self, broker_address: str, topic_name: str):
         self.broker_address = broker_address
