@@ -1,0 +1,10 @@
+# config.yaml
+data_sources:
+  live:
+    class: services.trades.kraken_api.websocket.KrakenWebsocketAPI
+  historical:
+    class: services.trades.kraken_api.rest.KrakenRestAPI
+    params:
+      last_n_days: 30
+  test:
+    class: services.trades.kraken_api.mock.KrakenMockAPI
